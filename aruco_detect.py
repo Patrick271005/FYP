@@ -5,7 +5,7 @@ from picamera2 import Picamera2
 #Detects an Aruco marker with the Pi Camera and estimates its distance 
 MARKER_SIZE_CM = 16 #width of marker
 CALIBRATION_DISTANCE_CM = 30 #Distance from camera to marker
-FOCAL_PX = None #set after calibration step
+FOCAL_PX = 946 # set after calibration step None
 # Setting up the ArUco detection
 aruco = cv2.aruco
 dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -29,6 +29,7 @@ picam2.start()
 time.sleep(1)
 
 saved = False
+suggestions =[]
 for _ in range(60):
     frame = picam2.capture_array("main")
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
@@ -43,13 +44,23 @@ for _ in range(60):
 
             if FOCAL_PX is None:
                 suggested = px * CALIBRATION_DISTANCE_CM / MARKER_SIZE_CM
+                suggestions.append(suggested)
                 print(f"ID {marker_id}: {px:.1f} px wide -> FOCAL_PX = {suggested:.0f}"
                       f"(if the marker is {CALIBRATION_DISTANCE_CM} cm away)")
+
+            else:
+                distance = MARKER_SIZE_CM * FOCAL_PX/ px
+                print(f"ID{marker_id}: {distance:.1f} cm away, {offset:+.0f} px from centre")
         if not saved:
             aruco.drawDetectedMarkers(frame, corners, ids)
             cv2.imwrite("aruco_detected.jpg",frame)
             saved=True
     time.sleep(0.2)
+if suggestions:
+    s = sorted(suggestions)
+    print(f"{len(s)} detections: FOCAL_PX min {s[0]:.0f},"
+          f"median{s[len(s) //2]:.0f}, max{s[-1]:.0f}")
+    
 picam2.stop()
 picam2.close()
 if not saved:
