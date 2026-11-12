@@ -21,4 +21,38 @@ def marker_pixel_width(corner):
 picam2 = Picamera2()
 config = picam2.create_video_configuration( main ={"size":(1280,720), "format":"RGB888"})
 picam2.configure(config)
+picam2.start()
 time.sleep(1)
+
+#takes last 5 distances
+recent = deque(maxlen=5)
+print("Running distance CTRL C to stop")
+try:
+    while True:
+        frame = picam2.capture_array("main")
+        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        corners, ids, _rejected = detector.detectMarkers(gray)
+
+        if ids is not None:
+            height, width = gray.shape
+            for corner, marker_id in zip(corners, ids.flatten()):
+                px = marker_pixel_width(corner)
+                centre_x = corner.reshape(4,2)[:,0].mean()
+                offset = centre_x - width / 2
+
+                distance = MARKER_SIZE_CM * FOCAL_PX / px
+                recent.append(distance)
+                average = sum(recent) / len(recent)
+                print(f"ID {marker_id}: {distance:.1f} cm  (avg {average:.1f}), " 
+                      f"{offset:+.0f} px from centre")
+        else:
+            recent.clear()
+            print("No marker in view")
+        time.sleep(0.1)
+except KeyboardInterrupt:
+    print("Stopped")
+finally:
+    picam2.stop()
+    picam2.close()
+
+
