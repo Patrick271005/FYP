@@ -12,7 +12,7 @@ import numpy as np
 from picamera2 import Picamera2
 
 # ---- Numbers from the calibration file ---------------------------------
-MARKER_SIZE_CM = 16.0
+MARKER_SIZE_CM = 3.75  ##16  5   3.75    6.0   2.25
 FOCAL_PX = 946
 PORT = 8000
 
